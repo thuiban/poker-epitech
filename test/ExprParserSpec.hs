@@ -18,7 +18,7 @@ evalExpr (Plus v1 v2) = evalExpr v1 + evalExpr v2
 evalExpr (Val v1)     = v1
 evalExpr (Sub v1 v2)  = evalExpr v1 - evalExpr v2
 evalExpr (Mul v1 v2)  = evalExpr v1 * evalExpr v2
-evalExpr (Div v1 v2)  = evalExpr v1 / evalExpr v2
+evalExpr (Div v1 v2)  = evalExpr v1 `div` evalExpr v2
 
 exprParser :: String -> Either SyntaxError Expr
 exprParser [c1]          = intParser [c1]
@@ -40,8 +40,7 @@ signeParser ('+':[]) = Right Plus
 signeParser ('-':[]) = Right Sub
 signeParser ('*':[]) = Right Mul
 signeParser ('/':[]) = Right Div
-
-plusParser _        = Left "syntax error"
+signeParser _        = Left "syntax error"
 
 
 spec :: Spec
@@ -69,7 +68,7 @@ spec = describe "Analyseur syntaxique d'additions à 1 chiffre" $ do
     it "parse '+' est une erreur" $ do
       exprParser "+" `shouldBe` Left "syntax error"
 
-describe "analyseur de moins" $ do
+  describe "analyseur de moins" $ do
    it "parse '1-2'" $ do
      exprParser "1-2" `shouldBe` Right (Val 1 `Sub` Val 2)
 
@@ -90,7 +89,7 @@ describe "analyseur de moins" $ do
 
    it "parse '-' est une erreur" $ do
      exprParser "-" `shouldBe` Left "syntax error"
-
+ 
   describe "Parser de Int" $ do
 
     it "analyse un chiffre comme un entier" $
@@ -103,7 +102,6 @@ describe "analyseur de moins" $ do
       intParser "a" `shouldBe` Left "syntax error"
 
   describe "Parser de signe" $ do
-
     it "analyse le caractère '+' comme un 'plus'" $
       let Right f = signeParser "+"
       in f (Val 1) (Val 2) `shouldBe` Plus (Val 1) (Val 2)
@@ -120,10 +118,11 @@ describe "analyseur de moins" $ do
       let Right f = signeParser "/"
       in f (Val 1) (Val 2) `shouldBe` Div (Val 1) (Val 2)
 
-    it "analyse le caractère 'a' "
+    it "analyse le caractère 'a' comme une erreur" $
+      let Left e = signeParser "a"
+      in e `shouldBe` "syntax error"
 
   describe "Evaluateur arithmétique" $ do
-
     it "calcule '1+2' retourne 3" $
       evalExpr (Plus (Val 1) (Val 2)) `shouldBe` 3
 
